@@ -11,6 +11,17 @@ function shut_down() {
 
 trap "shut_down" SIGKILL SIGTERM SIGHUP SIGINT
 
+while getopts "hV" opt; do
+  case ${opt} in
+    h ) # process option a
+      ;;
+    V ) VMART="TRUE"
+      ;;
+    \? ) echo "Usage: cmd [-h] [-t]"
+      ;;
+  esac
+done
+
 # if DATABASE_NAME is not provided use default one: "docker"
 export DATABASE_NAME="${DATABASE_NAME:-docker}"
 
@@ -33,6 +44,14 @@ fi
 
 echo 'Creating database'
 su - dbadmin -c "${CREATE_DB}"
+
+if [ "$VMART" == "TRUE" ]; then
+  echo "Creating the VMart database..."
+  cd /opt/vertica/examples/VMart_Schema/
+  ./vmart_gen
+  /opt/vertica/bin/vsql -U dbadmin ${VSQLPW} -f vmart_define_schema.sql
+  /opt/vertica/bin/vsql -U dbadmin ${VSQLPW} -f vmart_load_data.sql
+fi
 
 echo
 if [ -d /docker-entrypoint-initdb.d/ ]; then
